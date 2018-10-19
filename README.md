@@ -2,6 +2,7 @@
 Simple C++ Taskbased scheduler.
 
 Usage
+
 1-Create TaskScheduler object and specify the number of workers (threads) that will consume the tasks from the queue more than //one task mean that tasks will run in parallel.
 TaskSchedular ts(1);
 
