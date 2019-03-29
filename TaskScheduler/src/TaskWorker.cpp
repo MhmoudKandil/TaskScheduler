@@ -26,6 +26,7 @@ void TaskWorker::stopWorkerThread()
 int TaskWorker::addTaskFront(std::unique_ptr<ITask> t_task)
 {
 	t_task->setTaskState(TaskState::Waiting);
+	m_reftaskscheduler.updateTaskState(t_task->id(), TaskState::Waiting);
 	std::lock_guard<std::mutex> mu(m_mutexlock);
 	m_queuetasks.push_front(std::move(t_task));
 	m_conditionvar.notify_all();
@@ -35,6 +36,7 @@ int TaskWorker::addTaskFront(std::unique_ptr<ITask> t_task)
 int TaskWorker::addTaskToBack(std::unique_ptr<ITask> t_task)
 {
 	t_task->setTaskState(TaskState::Waiting);
+	m_reftaskscheduler.updateTaskState(t_task->id(), TaskState::Waiting);
 	std::lock_guard<std::mutex> mu(m_mutexlock);
 	m_queuetasks.push_back(std::move(t_task));
 	m_conditionvar.notify_all();
@@ -47,6 +49,7 @@ int TaskWorker::addSuspendedTask(std::unique_ptr<ITask> t_task)
 	milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	t_task->setSuspenionReleaseTime(ms + std::chrono::milliseconds(SUSPENSION_IN_MS));
 	t_task->setTaskState(TaskState::Suspended);
+	m_reftaskscheduler.updateTaskState(t_task->id(), TaskState::Suspended);
 	m_suspendedqtasks.push_back(std::move(t_task));
 	return 0;
 }
@@ -82,9 +85,12 @@ void TaskWorker::workerMainloop()
 				do
 				{
 					toptask->setTaskState(TaskState::Running);
+					m_reftaskscheduler.updateTaskState(toptask->id(), TaskState::Running);
 					toptask->runTask();
 					currtaskstate = toptask->taskState();
 					failedtrials = toptask->failCount();
+					// notify scheduler with task state
+					m_reftaskscheduler.updateTaskState(toptask->id(), currtaskstate);
 
 					s1 = (currtaskstratgy == RetryStartgy::NeverDropTask && currtaskstate == TaskState::Failed);
 					s2 = (currtaskstratgy == RetryStartgy::DropAfterNFailureAndSuspend && currtaskstate == TaskState::Failed && failedtrials%MAX_FAILED_TRIAL != 0);

@@ -38,6 +38,7 @@ public:
 	void setTaskState(TaskState ti_taskstate);
 	void setTaskRetyStratgy(RetryStartgy ti_retystrtgy);
 	void setSuspenionReleaseTime(milliseconds time);
+	void setId(unsigned int ti_id);
 	void resetAttemptCount();
 
 	milliseconds suspenionReleaseTime() const;
@@ -47,8 +48,10 @@ public:
 	RetryStartgy retryStratgy() const;
 	int failCount() const;
 	int lastError() const;
+	unsigned int id() const;
 
 private:
+	unsigned int m_id;
 	int m_lasterror;
 	int m_failcount;
 	TaskState m_taskstate = TaskState::None;
