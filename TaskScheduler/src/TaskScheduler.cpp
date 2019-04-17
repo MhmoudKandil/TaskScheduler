@@ -7,6 +7,7 @@ TaskSchedular::TaskSchedular(int ti_workersize)
 	:m_iworksize(ti_workersize),
 	m_schedulerstate(SchedulerState::PARKED)
 {
+	m_taskid = 0;
 	for (int i = 0; i < ti_workersize; i++)
 	{
 		std::unique_ptr<TaskWorker> temp{ new TaskWorker(*this) };
@@ -16,6 +17,7 @@ TaskSchedular::TaskSchedular(int ti_workersize)
 
 int TaskSchedular::addTaskToback(std::unique_ptr<ITask> ti_task)
 {
+	unsigned int tid = -1;
 	if (this->m_schedulerstate == SchedulerState::RUNNING)
 	{
 		auto worker = std::min_element(m_vectaskworkers.begin(), m_vectaskworkers.end(), [](auto& lhs, auto& rhs) 
@@ -23,17 +25,16 @@ int TaskSchedular::addTaskToback(std::unique_ptr<ITask> ti_task)
 			return lhs->workLoad() < rhs->workLoad();
 		}
 		);
+		tid = m_taskid++;
+		ti_task->setId(tid);
 		(*worker)->addTaskToBack(std::move(ti_task));
 	}
-	else
-	{
-		return -1;
-	}
-	return 0;
+	return tid;
 }
 
 int TaskSchedular::addTaskToFront(std::unique_ptr<ITask> ti_task)
 {
+	unsigned int tid = -1;
 	if (this->m_schedulerstate == SchedulerState::RUNNING)
 	{
 		auto worker = std::min_element(m_vectaskworkers.begin(), m_vectaskworkers.end(), [](auto& lhs, auto& rhs)
@@ -41,13 +42,11 @@ int TaskSchedular::addTaskToFront(std::unique_ptr<ITask> ti_task)
 			return lhs->workLoad() < rhs->workLoad();
 		}
 		);
+		tid = m_taskid++;
+		ti_task->setId(tid);
 		(*worker)->addTaskFront(std::move(ti_task));
 	}
-	else
-	{
-		return -1;
-	}
-	return 0;
+	return tid;
 }
 
 void TaskSchedular::startWorkers()
@@ -89,6 +88,30 @@ void TaskSchedular::waitForTermination()
 
 }
 
+void TaskSchedular::updateTaskState(unsigned int t_id, TaskState t_taskstate)
+{
+	std::unique_lock<std::mutex> mulock(m_mutexlock);
+	if (m_taskstates.count(t_id) == 0)
+	{
+		while (m_taskids.size() >= MAX_TASK_HISTORY)
+		{
+			m_taskstates.erase(m_taskids.front());
+			m_taskids.pop_front();
+		}
+		m_taskids.push_back(t_id);
+	}
+	m_taskstates[t_id] = t_taskstate;
+	switch (t_taskstate)
+	{
+	case TaskState::Running:
+		m_totalexecuted++;
+		break;
+	case TaskState::Succeeded:
+		m_totalsucceeded++;
+		break;
+	}
+}
+
 int TaskSchedular::workLoad() const
 {
 	int workload = 0;
@@ -105,4 +128,25 @@ int TaskSchedular::workLoad() const
 SchedulerState TaskSchedular::schedulerState() const
 {
 	return m_schedulerstate;
+}
+
+TaskState TaskSchedular::getTaskState(unsigned int t_taskid) const
+{
+	TaskState taskstate = TaskState::None;
+	auto iter = m_taskstates.find(t_taskid);
+	if (iter != m_taskstates.end())
+	{
+		taskstate = iter->second;
+	}
+	return taskstate;
+}
+
+double TaskSchedular::getSuccessPercentage() const
+{
+	return ((double)m_totalsucceeded.load() / m_totalexecuted.load()) * 100.0;
+}
+
+double TaskSchedular::getFailurePercentage() const
+{
+	return 100.0 - getSuccessPercentage();
 }

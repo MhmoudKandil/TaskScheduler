@@ -11,6 +11,11 @@ int ITask::lastError() const
 	return m_lasterror;
 }
 
+unsigned int ITask::id() const
+{
+	return m_id;
+}
+
 ITask::ITask()
 {
     m_failcount = 0;
@@ -45,6 +50,11 @@ void ITask::setSuspenionReleaseTime(milliseconds ti_time)
 	this->m_suspend_timestamp = ti_time;
 }
 
+void ITask::setId(unsigned int ti_id)
+{
+	this->m_id = ti_id;
+}
+
 milliseconds ITask::suspenionReleaseTime() const
 {
 	return m_suspend_timestamp;
@@ -58,7 +68,7 @@ milliseconds ITask::taskTimeStamp() const
 bool ITask::isReady() const
 {
 	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
-	if (ms >= suspenionReleaseTime() || ms == std::chrono::milliseconds(0))
+	if (ms >= suspenionReleaseTime() || suspenionReleaseTime() == std::chrono::milliseconds(0))
 		return true;
 	return false;
 }
