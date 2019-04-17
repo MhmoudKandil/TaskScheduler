@@ -26,7 +26,7 @@ public:
 	SchedulerState schedulerState() const;
 	TaskState getTaskState(unsigned int t_taskid) const;
 	double getSuccessPercentage() const;
-	double getFailurePercentag() const;
+	double getFailurePercentage() const;
 
 private:
 	const int m_iworksize;

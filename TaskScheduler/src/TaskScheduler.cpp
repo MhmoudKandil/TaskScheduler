@@ -146,7 +146,7 @@ double TaskSchedular::getSuccessPercentage() const
 	return ((double)m_totalsucceeded.load() / m_totalexecuted.load()) * 100.0;
 }
 
-double TaskSchedular::getFailurePercentag() const
+double TaskSchedular::getFailurePercentage() const
 {
 	return 100.0 - getSuccessPercentage();
 }
